@@ -10,60 +10,66 @@
 </head>
 
 <body>
-  <main>
-    <section>
-      <h1>脳トレじゃんけん</h1>
-    </section>
-  
-    <div class="button_box">
-      <div class="start_button_box">
-        <button id="start" class="start_button">スタート</button>
-      </div>
-      <div class="reset_button_box">
-        <button id="reloadPage" class="reset_button">リセット</button>
-      </div>
-    </div>
+    <main>
+        <section>
+            <h1>脳トレじゃんけん</h1>
+        </section>
 
-    <div id="result">
-      <div class="result_comment"><p>コンピューターの出す手と勝敗の指示を見て、</p></div>
-      <div class="result_img"><p>合う手を選ぼう</p></div>
-    </div>
-
-    <div class="result_box">
-      <div>
-        <p class="info">
-        正解数: <span id="correct">0</span>
-        間違えた数: <span id="wrong">0</span>
-        </p>
-        <div class="container">
-          <div id="timer">残り時間 00:00:00</div>
+        <div class="name">名前：<input type="text" id="playerName" placeholder="半角英数8文字以内"/></div>
+        <div></div>
+        
+        <div class="button_box">
+            <div class="start_button_box">
+                <button id="start" class="start_button">スタート</button>
+            </div>
+            <div class="reset_button_box">
+                <button id="reloadPage" class="reset_button">リセット</button>
+            </div>
         </div>
-      </div>
-    </div>
+
+        <div id="result">
+            <div class="result_comment"><p>コンピューターの出す手と勝敗の指示を見て、</p></div>
+            <div class="result_img"><p>合う手を選ぼう</p></div>
+        </div>
+
+        <div class="result_box">
+            <div>
+                <p class="info">
+                    回答数: <span id="answer">0</span>
+                    正答数: <span id="correct">0</span>
+                    正答率: <span id="rate">0.0</span>% 
+                </p>
+                <div class="container">
+                <div id="timer">残り時間 00:00:00</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="janken_box">
+            <div id="pc_hands">
+                <div><p>コンピュータの<br>手は？？</p></div>
+                <div class="pc_result"><img src="images/questionmark.png" alt="クエスチョンマーク" width="150px"></div>
+            </div>
+            <div class="my_hands">
+                <div>
+                <p>あなたの手は…</p>
+                </div>
+                <div id="my_handsBox">
+                    <div>
+                        <button id="gu_btn" class="janken_btn" data-value="0"><img src="images/rock.png" alt="グー"></button>
+                        <button id="cho_btn" class="janken_btn" data-value="1"><img src="images/scissors.png" alt="チョキ"></button>
+                        <button id="par_btn" class="janken_btn" data-value="2"><img src="images/paper.png" alt="パー"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+
     
-    <div class="janken_box">
-      <div id="pc_hands">
-        <div><p>コンピュータの<br>手は？？</p></div>
-        <div class="pc_result"><img src="images/questionmark.png" alt="クエスチョンマーク" width="150px"></div>
-      </div>
-      <div class="my_hands">
-        <div>
-          <p>あなたの手は…</p>
-        </div>
-        <div id="my_handsBox">
-          <div>
-            <button id="gu_btn" data-value="0"><img src="images/rock.png" alt="グー"></button>
-            <button id="cho_btn" data-value="1"><img src="images/scissors.png" alt="チョキ"></button>
-            <button id="par_btn" data-value="2"><img src="images/paper.png" alt="パー"></button>
-          </div>
-        </div>
-        <div id="result_display"></div>
-      </div>
-    </div>
-  </main>
 
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-  <script>
 
     // スタートを押すと始まる旨アラート
 
@@ -73,10 +79,38 @@
     //グローバル変数を宣言
     let pcHands; //pcの手(0:グー, 1:チョキ, 2:パー)
     let instruction; //お題(0:あいこ, 1:勝ち, 2:負け)
+    let answerCount = 0; //回答数
     let correctCount = 0; //正解数
-    let wrongCount = 0; //間違えた数
+    let rate = 0.0; //正答率
     let gameActive = false; //ゲーム中かどうか（まだ始まってない）
     let interval;
+
+    // PCの手の画像
+    const pcHandImages = [
+        'images/rock_invert.png',    // 0: グー
+        'images/scissors_invert.png', // 1: チョキ
+        'images/paper_invert.png'     // 2: パー
+    ];
+
+    // 指示のコメント（前半）
+    const instructionComments = [
+        'コンピューターの出す手と', // 0: あいこ
+        'コンピューターの出す手に', // 1: 勝ち
+        'コンピューターの出す手に'  // 2: 負け
+    ];
+
+    // 指示の画像（後半）
+    const instructionImages = [
+        'images/draw_tore.png', // 0: あいこ
+        'images/win_tore.png',  // 1: 勝ち
+        'images/lose_tore.png'  // 2: 負け
+    ];
+
+    const play = [
+        [0, 2, 1], //PCが0:グーの時：[あいこ(0:グー), 勝ち(2:パー), 負け(1:チョキ)]
+        [1, 0, 2], //PCが1:チョキの時：[あいこ(1:チョキ), 勝ち(0:グー), 負け(2:パー)]
+        [2, 1, 0] //PCが2:パーの時：[あいこ(2:パー), 勝ち(1:チョキ), 負け(0:グー)]
+    ]
 
     //効果音
     const startMusic = new Audio('./audio/start.mp3') //スタート
@@ -84,22 +118,10 @@
     const NGMusic = new Audio('./audio/ng1.mp3') //不正解
     
     //自分の手のボタンをクリックしたらdata-valueから値を取得してjudge()関数で判定を出す
-    $("#gu_btn").on("click",function(){
-      const input_button = parseInt($(this).data('value'));
-      console.log("自分の出した手：" + input_button );
-      judge(input_button);
-    });
-
-    $("#cho_btn").on("click",function(){
-      const input_button = parseInt($(this).data('value'));
-      console.log("自分の出した手：" + input_button);
-      judge(input_button);
-    });
-
-    $("#par_btn").on("click",function(){
-      const input_button = parseInt($(this).data('value'));
-      console.log("自分の出した手：" + input_button);
-      judge(input_button);
+    $(".janken_btn").on("click",function(){
+        const input_button = parseInt($(this).data('value'));
+        console.log("自分の出した手：" + input_button );
+        judge(input_button);
     });
 
     // スタートボタンを押したら
@@ -116,175 +138,102 @@
     // 2→負け
 
     function startGame(){
-      const randomNumber = Math.floor(Math.random()*3);
-      const randomNumber2 = Math.floor(Math.random()*3);
-      console.log("PCの手：" + randomNumber);
-      console.log("お題：" + randomNumber2);
+        const randomNumber = Math.floor(Math.random() * 3); //PCの手
+        const randomNumber2 = Math.floor(Math.random() * 3); //お題
 
-      pcHands = randomNumber;
-      instruction = randomNumber2;
+        console.log("PCの手：" + randomNumber);
+        console.log("お題：" + randomNumber2);
 
-      //ランダムに出たPCの手と指示に応じて画像を変更し表示
-      if ( pcHands === 0 && instruction === 0 ) {
-        // グーとあいこ
-        $(".pc_result").html('<img src="images/rock_invert.png" alt="グーの画像" width="100px">');
-        $(".result_comment").text("コンピューターの出す手と");
-        $(".result_img").html('<img src="images/draw_tore.png" alt="あいこにしての画像" width="100px">');
-      } else if ( pcHands === 0 && instruction === 1 ) {
-        // グーと勝ち
-        $(".pc_result").html('<img src="images/rock_invert.png" alt="グーの画像" width="100px">');
-        $(".result_comment").text("コンピューターの出す手に");
-        $(".result_img").html('<img src="images/win_tore.png" alt="勝っての画像" width="100px">');
-      } else if ( pcHands === 0 && instruction === 2 ) {
-        // グーと負け
-        $(".pc_result").html('<img src="images/rock_invert.png" alt="グーの画像" width="100px">');
-        $(".result_comment").text("コンピューターの出す手に");
-        $(".result_img").html('<img src="images/lose_tore.png" alt="負けての画像" width="100px">');
-      } else if ( pcHands === 1 && instruction === 0 ) {
-        // チョキとあいこ
-        $(".pc_result").html('<img src="images/scissors_invert.png" alt="チョキの画像" width="100px">');
-        $(".result_comment").text("コンピューターの出す手と");
-        $(".result_img").html('<img src="images/draw_tore.png" alt="あいこにしての画像" width="100px">');
-      } else if ( pcHands === 1 && instruction === 1 ) {
-        // チョキと勝ち
-        $(".pc_result").html('<img src="images/scissors_invert.png" alt="チョキの画像" width="100px">');
-        $(".result_comment").text("コンピューターの出す手に");
-        $(".result_img").html('<img src="images/win_tore.png" alt="勝っての画像" width="100px">');
-      } else if ( pcHands === 1 && instruction === 2 ) {
-        // チョキと負け
-        $(".pc_result").html('<img src="images/scissors_invert.png" alt="チョキの画像" width="100px">');
-        $(".result_comment").text("コンピューターの出す手に");
-        $(".result_img").html('<img src="images/lose_tore.png" alt="負けての画像" width="100px">');
-      } else if ( pcHands === 2 && instruction === 0) {
-        // パーとあいこ
-        $(".pc_result").html('<img src="images/paper_invert.png" alt="パーの画像" width="100px">');
-        $(".result_comment").text("コンピューターの出す手と");
-        $(".result_img").html('<img src="images/draw_tore.png" alt="あいこにしての画像" width="100px">');
-      } else if ( pcHands === 2 && instruction === 1) {
-        // パーと勝ち
-        $(".pc_result").html('<img src="images/paper_invert.png" alt="パーの画像" width="100px">');
-        $(".result_comment").text("コンピューターの出す手に");
-        $(".result_img").html('<img src="images/win_tore.png" alt="勝っての画像" width="100px">');
-      } else if ( pcHands === 2 && instruction === 2) {
-        // パーと負け
-        $(".pc_result").html('<img src="images/paper_invert.png" alt="パーの画像" width="100px">');
-        $(".result_comment").text("コンピューターの出す手に");
-        $(".result_img").html('<img src="images/lose_tore.png" alt="負けての画像" width="100px">');
-      }
+        pcHands = randomNumber;
+        instruction = randomNumber2;
+
+        //ランダムに出たPCの手と指示に応じて画像を変更し表示
+        $(".pc_result").html(`<img src="${pcHandImages[pcHands]}" alt="PCの手の画像" width="100px">`);
+        $(".result_comment").text(instructionComments[instruction]);
+        $(".result_img").html(`<img src="${instructionImages[instruction]}" alt="指示の画像" width="100px">`);
     }
 
     $("#start").on("click", function() {
-      if (gameActive) return; //すでにゲーム中なら何もしない（ボタン連打を防ぐ）
-      gameActive = true;
-      correctCount = 0; //リセット
-      wrongCount = 0; //リセット
-      $("#correct").text(correctCount);
-      $("#wrong").text(wrongCount);
-      startGame(); //pcの手とお題を表示
-      countDownTimer(); //タイマーを開始
-      startMusic.currentTime = 0; //効果音の再生位置を0秒からスタートする
-      startMusic.play(); //効果音再生
+        if (gameActive) return; //すでにゲーム中なら何もしない（ボタン連打を防ぐ）
+        gameActive = true;
+        answerCount = 0; //リセット
+        correctCount = 0; //リセット
+        $("#answer").text(answerCount);
+        $("#correct").text(correctCount);
+        startGame(); //pcの手とお題を表示
+        countDownTimer(); //タイマーを開始
+        startMusic.currentTime = 0; //効果音の再生位置を0秒からスタートする
+        startMusic.play(); //効果音再生
     });
 
     // ボタンを押したら正解か違うかもを表示
     // グーボタン・チョキボタン・パーボタン３種類で作る
     function judge(input_button) {
-      if(!gameActive) return;//ゲーム中じゃなかったら何もしない
-      if ( instruction === 0 ) { //指示があいこの時
-        if ( pcHands === input_button ) { //pcの手と自分の手が同じなら
-          $("#result_display").text("正解！！！"); //正解を表示
-          OKMusic.currentTime = 0;
-          OKMusic.play();
-          correctCount++; //正解数を１増やす
-          $("#correct").text(correctCount);
-        } else {
-          $("#result_display").text("違うかも…");
-          NGMusic.currentTime = 0;
-          NGMusic.play();
-          wrongCount++;
-          $("#wrong").text(wrongCount);
-        }
-      } else if ( instruction === 1 ) {
-        if (( pcHands === 0 && input_button === 2 ) ||
-          ( pcHands === 1 && input_button === 0 ) ||
-          ( pcHands === 2 && input_button === 1 )) {
-          $("#result_display").text("正解！！！");
-          OKMusic.currentTime = 0;
-          OKMusic.play();
-          correctCount++;
-          $("#correct").text(correctCount);
-        } else {
-          $("#result_display").text("違うかも…");
-          NGMusic.currentTime = 0;
-          NGMusic.play();
-          wrongCount++;
-          $("#wrong").text(wrongCount);
-        }
-      } else if ( instruction === 2 ) {
-        if (( pcHands === 0 && input_button === 1 ) ||
-          ( pcHands === 1 && input_button === 2 ) ||
-          ( pcHands === 2 && input_button === 0 )) {
-          $("#result_display").text("正解！！！");
-          OKMusic.currentTime = 0;
-          OKMusic.play();
-          correctCount++;
-          $("#correct").text(correctCount);
-        } else {
-          $("#result_display").text("違うかも…");
-          NGMusic.currentTime = 0;
-          NGMusic.play();
-          wrongCount++;
-          $("#wrong").text(wrongCount);
-        }
-      }
+        if(!gameActive) return;//ゲーム中じゃなかったら何もしない
 
-      setTimeout(function() {
-        startGame();
-        }, 500); //0.5秒後に次のpcの手とお題を表示
+        answerCount++; // 回答数を増やす
+        $("#answer").text(answerCount); // 回答数を更新
+
+        //プレイヤーの正しい手の組み合わせ
+        const correctHand = play[pcHands][instruction];
+
+        if (input_button === correctHand) { //プレイヤーの手が正しく入力された場合
+            OKMusic.currentTime = 0;
+            OKMusic.play();
+            correctCount++;
+            $("#correct").text(correctCount);
+        } else {
+            NGMusic.currentTime = 0;
+            NGMusic.play();
+        }
+
+        setTimeout(function() {
+            startGame();
+        }, 100); //0.1秒後に次のpcの手とお題を表示
     }
 
     function countDownTimer(){
-      const countDown = document.getElementById('timer');
-      const targetTime = new Date().getTime() + 15000; //現在の日付時刻＋15秒後を終了時刻とする
+        const countDown = document.getElementById('timer');
+        const targetTime = new Date().getTime() + 15000; //現在の日付時刻＋15秒後を終了時刻とする
 
-      clearInterval(interval); //前のタイマーがあればクリア
+        clearInterval(interval); //前のタイマーがあればクリア
 
-      function updateCountDown(){ //タイマーの表示（現在時刻との差）を更新
-        const now = new Date().getTime(); //現在時刻
-        const distance = targetTime - now; //残り時間
+        function updateCountDown(){ //タイマーの表示（現在時刻との差）を更新
+            const now = new Date().getTime(); //現在時刻
+            const distance = targetTime - now; //残り時間
 
-        //残り時間を時、分、秒に変換(floorで小数点以下切り捨て)
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / (1000));
-        const miliseconds = distance < 0 ? 0 :Math.floor(distance % 1000);
+            //残り時間を時、分、秒に変換(floorで小数点以下切り捨て)
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / (1000));
+            const miliseconds = distance < 0 ? 0 :Math.floor(distance % 1000);
 
-        //タイマーの残り時間をHTMLに表示
-        //padStartで桁が少ない時は頭に０をつけて表示する
-        countDown.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${ String( miliseconds ).padStart( 3, "0" ) }`;
+            //タイマーの残り時間をHTMLに表示
+            //padStartで桁が少ない時は頭に０をつけて表示する
+            countDown.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${ String( miliseconds ).padStart( 3, "0" ) }`;
 
-        if(distance <= 5000 && distance >0){ //残り時間が5秒以下の時
-          countDown.style.color = 'red'; //文字色を赤に
-        } else {
-          countDown.style.color = '#384B70';
+            if(distance <= 5000 && distance >0){ //残り時間が5秒以下の時
+                countDown.style.color = 'red'; //文字色を赤に
+            } else {
+                countDown.style.color = '#384B70';
+            }
+
+            if(distance < 0){ //残り時間がマイナスの時
+                clearInterval(interval); //タイマーをクリア
+                countDown.textContent = '終了しました'; //表示を終了しましたに変更
+                countDown.style.color = '#384B70';
+                gameActive = false; //ゲームを無効化（ボタン無反応になる）
+            }
         }
 
-        if(distance < 0){ //残り時間がマイナスの時
-          clearInterval(interval); //タイマーをクリア
-          countDown.textContent = '終了しました'; //表示を終了しましたに変更
-          countDown.style.color = '#384B70';
-          gameActive = false; //ゲームを無効化（ボタン無反応になる）
-        }
-      }
-
-      interval = setInterval(updateCountDown, 1); 
-      updateCountDown();
+        interval = setInterval(updateCountDown, 1); 
+        updateCountDown();
     }
-    
+        
     $(document).ready(function() {
-      $('#reloadPage').on('click', function() {
+    $('#reloadPage').on('click', function() {
         location.reload();  // ページを再読み込み
-      });
+    });
     })
     
     
@@ -299,14 +248,34 @@
     <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
     
-    // 読み込み (from以降のpathは置いたところへの相対path)
-    // あなたのfirebaseConfig.jsの場所に合わせてパスを調整してください。
-    // index.htmlと同じ階層にfirebaseConfig.jsを置いた場合
+    import {
+        getFirestore,
+        collection,
+        addDoc,
+        serverTimestamp,
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
     import firebaseConfig from "./firebaseConfig.js"; 
+
+
+
 
     // 読み込んだfirebaseConfigで初期化
     const app = initializeApp(firebaseConfig);
 
+    const db = getFirestore(app);
+
+    // 日時をいい感じの形式にする関数
+    function convertTimestampToDatetime(timestamp) {
+        const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+        const Y = _d.getFullYear();
+        const m = (_d.getMonth() + 1).toString().padStart(2, '0');
+        const d = _d.getDate().toString().padStart(2, '0');
+        const H = _d.getHours().toString().padStart(2, '0');
+        const i = _d.getMinutes().toString().padStart(2, '0');
+        const s = _d.getSeconds().toString().padStart(2, '0');
+        return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+    }
     
     </script>
 
