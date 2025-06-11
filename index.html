@@ -295,6 +295,21 @@
 
 
   </script>
+
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    
+    // 読み込み (from以降のpathは置いたところへの相対path)
+    // あなたのfirebaseConfig.jsの場所に合わせてパスを調整してください。
+    // index.htmlと同じ階層にfirebaseConfig.jsを置いた場合
+    import firebaseConfig from "./firebaseConfig.js"; 
+
+    // 読み込んだfirebaseConfigで初期化
+    const app = initializeApp(firebaseConfig);
+
+    
+    </script>
+
 </body>
 
 </html>
