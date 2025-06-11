@@ -1,0 +1,164 @@
+* {
+  margin: 0;
+  box-sizing: border-box;
+}
+
+button {
+  width: 100px;
+  height: 100px;
+  background-color: #97ddff;
+  border: none;
+  font-family: YDW bananaSlip plus;
+}
+
+button img {
+  width: 85px;
+  padding: 3px 0 0 0;
+}
+
+main {
+  max-width: 480px;
+  height: 100vh;
+  margin: 0 auto;
+  color: #384B70;
+  font-family: YDW bananaSlip plus;
+}
+
+section {
+  height: calc(100vh/5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+h1 {
+  margin: 0 auto;
+  padding: 0 auto;
+  font-size: 40px;
+}
+
+.button_box {
+  display: flex;
+  justify-content: space-around;
+}
+
+.start_button_box {
+  display: flex;
+  justify-content: center;
+}
+
+.start_button {
+  display: block;
+  font-size: 18px;
+  text-align: center;
+  cursor: pointer;
+  background-color: white;
+  width: 200px;
+  height: 50px;
+  color: #384B70;
+  border: 5px solid #97ddff;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.start_button:hover {
+  border:5px solid #88cb11;
+  background-color: white;
+  color: #384b70;
+}
+
+.reset_button_box {
+  justify-content: center;
+}
+
+.reset_button {
+  display: block;
+  font-size: 18px;
+  text-align: center;
+  cursor: pointer;
+  background-color: white;
+  width: 200px;
+  height: 50px;
+  color: #384B70;
+  border: 5px solid #97ddff;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.reset_button:hover {
+  border:5px solid #88cb11;
+  background-color: white;
+  color: #384b70;
+}
+
+#result {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80px;
+  margin: 20px 0;
+  font-size: 20px;
+}
+
+.result_box {
+  display: flex;
+  justify-content: center;
+  margin: 20px;
+  font-size: 25px;
+}
+
+.janken_box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+}
+
+#pc_hands {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+#pc_hands p {
+  text-align: center;
+}
+
+.my_hands {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+#my_handsBox {
+  display: flex;
+  justify-content: center;
+}
+
+#gu_btn:hover {
+  border:2px solid #88cb11;
+  background-color: #88cb11;
+  color: #384b70;
+  box-sizing: border-box;
+}
+
+#cho_btn:hover {
+  border:2px solid #88cb11;
+  background-color: #88cb11;
+  color: #384b70;
+  box-sizing: border-box;
+}
+
+#par_btn:hover {
+  border:2px solid #88cb11;
+  background-color: #88cb11;
+  color: #384b70;
+  box-sizing: border-box;
+}
+
+#result_display {
+  font-size: 50px;
+  color: #ef5e03;
+}
