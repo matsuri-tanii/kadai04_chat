@@ -4,86 +4,93 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>脳トレじゃんけん</title>
-  <link href="https://fonts.googleapis.com/css?family=Noto+Sans+JP" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>５７５チャット</title>
+  <style>
+    #output li {
+      background: #ccc;
+    }
+  </style>
 </head>
 
 <body>
-    <main>
-        <section>
-            <h1>脳トレじゃんけん</h1>
-        </section>
+  <h1>５７５</h1>
+  <!-- 入力場所を作成しよう -->
+  <form>
+    <fieldset>
+      <legend>チャット入力画面</legend>
+      <div>
+        name: <input type="text" id="name">
+      </div>
+      <div>
+        text: <input type="text" id="text">
+      </div>
+      <div>
+        <button type="button" id="send">send</button>
+      </div>
+    </fieldset>
+  </form>
 
-        <div class="name">名前：<input type="text" id="playerName" placeholder="半角英数8文字以内"/></div>
-        <div></div>
-        
-        <div class="button_box">
-            <div class="start_button_box">
-                <button id="start" class="start_button">スタート</button>
-            </div>
-            <div class="reset_button_box">
-                <button id="reloadPage" class="reset_button">リセット</button>
-            </div>
-        </div>
+  <!-- データ出力場所 -->
+  <ul id="output"></ul>
 
-        <div id="result">
-            <div class="result_comment"><p>コンピューターの出す手と勝敗の指示を見て、</p></div>
-            <div class="result_img"><p>合う手を選ぼう</p></div>
-        </div>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script>
+    // 日時をいい感じの形式にする関数
+    function convertTimestampToDatetime(timestamp) {
+      const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+      const Y = _d.getFullYear();
+      const m = (_d.getMonth() + 1).toString().padStart(2, '0');
+      const d = _d.getDate().toString().padStart(2, '0');
+      const H = _d.getHours().toString().padStart(2, '0');
+      const i = _d.getMinutes().toString().padStart(2, '0');
+      const s = _d.getSeconds().toString().padStart(2, '0');
+      return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+    }
+  </script>
 
-        <div class="result_box">
-            <div>
-                <p class="info">
-                    回答数: <span id="answer">0</span>
-                    正答数: <span id="correct">0</span>
-                    正答率: <span id="rate">0.0</span>% 
-                </p>
-                <div class="container">
-                <div id="timer">残り時間 00:00:00</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="janken_box">
-            <div id="pc_hands">
-                <div><p>コンピュータの<br>手は？？</p></div>
-                <div class="pc_result"><img src="images/questionmark.png" alt="クエスチョンマーク" width="150px"></div>
-            </div>
-            <div class="my_hands">
-                <div>
-                <p>あなたの手は…</p>
-                </div>
-                <div id="my_handsBox">
-                    <div>
-                        <button id="gu_btn" class="janken_btn" data-value="0"><img src="images/rock.png" alt="グー"></button>
-                        <button id="cho_btn" class="janken_btn" data-value="1"><img src="images/scissors.png" alt="チョキ"></button>
-                        <button id="par_btn" class="janken_btn" data-value="2"><img src="images/paper.png" alt="パー"></button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script>
-
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
     
+    import {
+        getFirestore,
+        collection,
+        addDoc,
+        serverTimestamp,
+        query,
+        orderBy,
+        onSnapshot,
+        limit
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+    import firebaseConfig from "./firebaseConfig.js"; 
 
 
-    // スタートを押すと始まる旨アラート
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    const startComment = "スタートボタンを押すと始まるよ"
-    alert(startComment);
+    // 日時をいい感じの形式にする関数 (Dateオブジェクトを引数に取るように修正)
+    function convertTimestampToDatetime(dateObject) {
+        const Y = dateObject.getFullYear();
+        const m = (dateObject.getMonth() + 1).toString().padStart(2, '0');
+        const d = dateObject.getDate().toString().padStart(2, '0');
+        const H = dateObject.getHours().toString().padStart(2, '0');
+        const i = dateObject.getMinutes().toString().padStart(2, '0');
+        const s = dateObject.getSeconds().toString().padStart(2, '0');
+        return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+    }
+
 
     //グローバル変数を宣言
     let pcHands; //pcの手(0:グー, 1:チョキ, 2:パー)
     let instruction; //お題(0:あいこ, 1:勝ち, 2:負け)
     let answerCount = 0; //回答数
     let correctCount = 0; //正解数
-    let rate = 0.0; //正答率
     let gameActive = false; //ゲーム中かどうか（まだ始まってない）
     let interval;
+    let finalCorrectCount = 0; //ゲーム終了時の正解数
+    let finalAnswerCount = 0; //ゲーム終了時の回答数
+    let finalCorrectAnswerRate = 0; //ゲーム終了時の正解率
 
     // PCの手の画像
     const pcHandImages = [
@@ -160,6 +167,11 @@
         correctCount = 0; //リセット
         $("#answer").text(answerCount);
         $("#correct").text(correctCount);
+        $("#rate").text("0.00");
+
+        // ゲーム開始時は結果エリアを非表示にする
+        $("#scoreResultArea").hide();
+
         startGame(); //pcの手とお題を表示
         countDownTimer(); //タイマーを開始
         startMusic.currentTime = 0; //効果音の再生位置を0秒からスタートする
@@ -223,6 +235,14 @@
                 countDown.textContent = '終了しました'; //表示を終了しましたに変更
                 countDown.style.color = '#384B70';
                 gameActive = false; //ゲームを無効化（ボタン無反応になる）
+
+                // 正答率の計算と、グローバル変数に最終スコアを保存
+                finalCorrectCount = correctCount;
+                finalAnswerCount = answerCount;
+                finalCorrectAnswerRate =answerCount > 0 ? (correctCount / answerCount) * 100 : 0;
+                $("#rate").text(finalCorrectAnswerRate.toFixed(2));
+
+                showScoreModal(finalCorrectCount, finalAnswerCount, finalCorrectAnswerRate);
             }
         }
 
@@ -231,51 +251,130 @@
     }
         
     $(document).ready(function() {
-    $('#reloadPage').on('click', function() {
-        location.reload();  // ページを再読み込み
-    });
+        $('#reloadPage').on('click', function() {
+            location.reload();  // ページを再読み込み
+        });
+
+        $("#saveScoreBtn").on("click", function() {
+            const playerName = $("#finalResultPlayerName").val().trim();
+            const playerNameRegex = /^[a-zA-Z0-9]{1,8}$/; 
+            
+            if (!playerNameRegex.test(playerName)) { 
+                alert("プレイヤー名は半角英数8文字以内で入力してください。");
+                return; // 保存しない
+            }
+
+            // 保存処理
+            saveScoreToFirebase(playerName, finalCorrectCount, finalAnswerCount, finalCorrectAnswerRate);
+            $("#scoreResultArea").hide(); // ポップアップを非表示にする
+            location.reload(); // 保存後にリロード
+        });
+        // ページロード時に結果表示エリアを非表示にする
+        $("#scoreResultArea").hide();
     })
-    
-    
 
-
-
-    
-
-
-  </script>
-
-    <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-    
-    import {
-        getFirestore,
-        collection,
-        addDoc,
-        serverTimestamp,
-    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
-
-    import firebaseConfig from "./firebaseConfig.js"; 
-
-
-
-
-    // 読み込んだfirebaseConfigで初期化
-    const app = initializeApp(firebaseConfig);
-
-    const db = getFirestore(app);
-
-    // 日時をいい感じの形式にする関数
-    function convertTimestampToDatetime(timestamp) {
-        const _d = timestamp ? new Date(timestamp * 1000) : new Date();
-        const Y = _d.getFullYear();
-        const m = (_d.getMonth() + 1).toString().padStart(2, '0');
-        const d = _d.getDate().toString().padStart(2, '0');
-        const H = _d.getHours().toString().padStart(2, '0');
-        const i = _d.getMinutes().toString().padStart(2, '0');
-        const s = _d.getSeconds().toString().padStart(2, '0');
-        return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+    function showScoreModal(correct, answer, rate) {
+        $("#finalResultCorrect").text(correct);
+        $("#finalResultAnswer").text(answer);
+        $("#finalResultRate").text(rate.toFixed(2));
+        $("#finalResultPlayerName").val(""); // プレイヤー名入力欄をクリア
+        $("#scoreResultArea").show(); // ポップアップを表示
     }
+
+    function saveScoreToFirebase(playerName, correctAnswers, totalAnswers, winRate) {
+        addDoc(collection(db, "scores"), { // "scores" はFirestoreのコレクション名
+            playerName: playerName,
+            correctAnswers: correctAnswers,
+            totalAnswers: totalAnswers,
+            winRate: parseFloat(winRate.toFixed(2)),
+            timestamp: serverTimestamp(),
+        })
+        .then(() => {
+            console.log("スコアが正常に保存されました！"); // 成功時のログ
+        })
+        .catch((error) => {
+            console.error("Firebaseへの書き込みエラー:", error); // エラー発生時のログ
+            alert("スコアの保存中にエラーが発生しました。コンソールを確認してください。");
+        });
+    }
+
+    // 「Firestore 形式のデータ」を入力して「配列形式のデータ」を出力する関数を追加する
+    // FirestoreのTimestampオブジェクトをDateオブジェクトに変換する処理を追加
+    function convertFirestoreDocsToArray(fireStoreDocs) {
+        const documents = []; 
+        fireStoreDocs.forEach(function (doc) {
+            const data = doc.data();
+            documents.push({
+                id: doc.id,
+                // Firebaseに保存したフィールド名と一致させる
+                playerName: data.playerName,
+                correctAnswers: data.correctAnswers, 
+                totalAnswers: data.totalAnswers,     
+                winRate: data.winRate,
+                // FirestoreのTimestampオブジェクトをtoDate()でJSのDateオブジェクトに変換
+                timestamp: data.timestamp.toDate()
+            });
+        });
+        return documents;
+    }
+
+    // 「配列形式にしたチャットのデータ」を入力して「表示用のタグにいれて」出力する関数を追加する
+    // 関数名を createRankingElements に戻し、HTML構造をコレクション表示に修正
+    function createRankingElements(scoreDocuments) {
+        let elements = ''; // 初期値を空文字列に変更
+
+        // 各スコアデータを個別のカード（div）として生成
+        scoreDocuments.forEach(function (document, index) {
+            // convertTimestampToDatetime 関数は Date オブジェクトを受け取るように修正済み
+            const formattedTime = convertTimestampToDatetime(document.timestamp)
+
+            elements += `
+                <div class="ranking-item">
+                    <div class="ranking-rank">#${index + 1}</div>
+                    <div class="ranking-details">
+                        <div class="ranking-player"><strong>${document.playerName}</strong></div>
+                        <div class="ranking-stats">
+                            <span>正答率: ${document.winRate.toFixed(2)}%</span>
+                            <span>正答数: ${document.correctAnswers}</span>
+                            <span>回答数: ${document.totalAnswers}</span>
+                        </div>
+                        <div class="ranking-time">記録日時: ${formattedTime}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // データがない場合の表示
+        if (scoreDocuments.length === 0) {
+            elements = '<p>まだランキングデータがありません。</p>';
+        }
+
+        return elements;
+    }
+
+    // データ取得条件の指定
+        // "scores" コレクションから、winRateの降順、次にtimestampの降順で取得
+        const q = query(
+            collection(db, "scores"), // コレクション名を "scores" に修正
+            orderBy("winRate", "desc"),
+            orderBy("timestamp", "desc"), // 新しい順にするため降順に
+            limit(10) // 上位10件のみ表示
+        );
+
+    // データ取得処理（リアルタイムリスナー）
+    onSnapshot(q, (querySnapshot) => {
+        // firestore 形式のデータである querySnapshot.docs を入力する
+        const documents = convertFirestoreDocsToArray(querySnapshot.docs);
+        console.log("ランキングデータ:", documents);
+
+        // 配列形式のデータを入力して表示用のタグにいれて出力する
+        const rankingElementsHtml = createRankingElements(documents); // 変数名を明確化
+        $("#rankingOutput").html(rankingElementsHtml); // ランキング表示用のHTML要素のIDは"rankingOutput"
+    });
+
+
+
+
     
     </script>
 
