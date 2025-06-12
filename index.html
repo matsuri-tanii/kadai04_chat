@@ -6,48 +6,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>５７５チャット</title>
+  <link rel="stylesheet" href="css/style.css"> 
   <style>
-    #output li {
-      background: #ccc;
-    }
+
   </style>
 </head>
 
 <body>
-  <h1>５７５</h1>
-  <!-- 入力場所を作成しよう -->
-  <form>
-    <fieldset>
-      <legend>チャット入力画面</legend>
-      <div>
-        name: <input type="text" id="name">
-      </div>
-      <div>
-        text: <input type="text" id="text">
-      </div>
-      <div>
-        <button type="button" id="send">send</button>
-      </div>
-    </fieldset>
-  </form>
+    <h1>５７５のつぶやき</h1>
+    <!-- 入力場所を作成しよう -->
 
-  <!-- データ出力場所 -->
-  <ul id="output"></ul>
+        <form id="form_id">
+        <fieldset>
+            <legend>５７５を詠んでみる(スペースは各自で入れてね)</legend>
+            <div class="input_area">
+                <div>
+                    <div>
+                        お名前: <input type="text" id="name" placeholder="全角入力">
+                    </div>
+                    <div>
+                        ５７５: <input type="text" id="text" placeholder="全角入力">
+                    </div>
+                </div>
+                <div>
+                    <button type="button" id="send">お披露目する</button>
+                </div>
+            </div>
+        </fieldset>
+        </form>
+
+
+    <!-- データ出力場所 -->
+        <div>
+        <ul id="output"></ul>
+        </div>
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-  <script>
-    // 日時をいい感じの形式にする関数
-    function convertTimestampToDatetime(timestamp) {
-      const _d = timestamp ? new Date(timestamp * 1000) : new Date();
-      const Y = _d.getFullYear();
-      const m = (_d.getMonth() + 1).toString().padStart(2, '0');
-      const d = _d.getDate().toString().padStart(2, '0');
-      const H = _d.getHours().toString().padStart(2, '0');
-      const i = _d.getMinutes().toString().padStart(2, '0');
-      const s = _d.getSeconds().toString().padStart(2, '0');
-      return `${Y}/${m}/${d} ${H}:${i}:${s}`;
-    }
-  </script>
 
     <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
@@ -60,7 +54,6 @@
         query,
         orderBy,
         onSnapshot,
-        limit
     } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
     import firebaseConfig from "./firebaseConfig.js"; 
@@ -69,314 +62,134 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 日時をいい感じの形式にする関数 (Dateオブジェクトを引数に取るように修正)
-    function convertTimestampToDatetime(dateObject) {
-        const Y = dateObject.getFullYear();
-        const m = (dateObject.getMonth() + 1).toString().padStart(2, '0');
-        const d = dateObject.getDate().toString().padStart(2, '0');
-        const H = dateObject.getHours().toString().padStart(2, '0');
-        const i = dateObject.getMinutes().toString().padStart(2, '0');
-        const s = dateObject.getSeconds().toString().padStart(2, '0');
-        return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+
+    // 日時をいい感じの形式にする関数
+    function convertTimestampToDatetime(timestamp) {
+        const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+        const Y = _d.getFullYear();
+        const m = (_d.getMonth() + 1).toString();
+        const d = _d.getDate().toString();
+        const H = _d.getHours().toString().padStart(2, '0');
+        const i = _d.getMinutes().toString().padStart(2, '0');
+        const s = _d.getSeconds().toString().padStart(2, '0');
+        return `${Y}年${m}月${d}日 ${H}時${i}分${s}秒`;
     }
 
-
-    //グローバル変数を宣言
-    let pcHands; //pcの手(0:グー, 1:チョキ, 2:パー)
-    let instruction; //お題(0:あいこ, 1:勝ち, 2:負け)
-    let answerCount = 0; //回答数
-    let correctCount = 0; //正解数
-    let gameActive = false; //ゲーム中かどうか（まだ始まってない）
-    let interval;
-    let finalCorrectCount = 0; //ゲーム終了時の正解数
-    let finalAnswerCount = 0; //ゲーム終了時の回答数
-    let finalCorrectAnswerRate = 0; //ゲーム終了時の正解率
-
-    // PCの手の画像
-    const pcHandImages = [
-        'images/rock_invert.png',    // 0: グー
-        'images/scissors_invert.png', // 1: チョキ
-        'images/paper_invert.png'     // 2: パー
-    ];
-
-    // 指示のコメント（前半）
-    const instructionComments = [
-        'コンピューターの出す手と', // 0: あいこ
-        'コンピューターの出す手に', // 1: 勝ち
-        'コンピューターの出す手に'  // 2: 負け
-    ];
-
-    // 指示の画像（後半）
-    const instructionImages = [
-        'images/draw_tore.png', // 0: あいこ
-        'images/win_tore.png',  // 1: 勝ち
-        'images/lose_tore.png'  // 2: 負け
-    ];
-
-    const play = [
-        [0, 2, 1], //PCが0:グーの時：[あいこ(0:グー), 勝ち(2:パー), 負け(1:チョキ)]
-        [1, 0, 2], //PCが1:チョキの時：[あいこ(1:チョキ), 勝ち(0:グー), 負け(2:パー)]
-        [2, 1, 0] //PCが2:パーの時：[あいこ(2:パー), 勝ち(1:チョキ), 負け(0:グー)]
-    ]
-
-    //効果音
-    const startMusic = new Audio('./audio/start.mp3') //スタート
-    const OKMusic = new Audio('./audio/ok5.mp3') //正解
-    const NGMusic = new Audio('./audio/ng1.mp3') //不正解
+    // 全角チェック関数
+    function isZenkaku(str) {
+      // 半角英数字記号、半角カタカナが含まれていないかチェック
+      // この正規表現は一般的な半角文字を検出します
+      return !/[!-~]/.test(str); 
+    }
     
-    //自分の手のボタンをクリックしたらdata-valueから値を取得してjudge()関数で判定を出す
-    $(".janken_btn").on("click",function(){
-        const input_button = parseInt($(this).data('value'));
-        console.log("自分の出した手：" + input_button );
-        judge(input_button);
-    });
-
-    // スタートボタンを押したら
-    // randomNumberで０-2までのランダムな数字をコンソールに表示
-    // コンピュータの手
-    // 0→グー
-    // 1→チョキ
-    // 2→パー
-
-    // randomNumber2で０-2までのランダムな数字をコンソールに表示（勝ち、負け、あいこの指示）
-    // お題 (randomNumber2)
-    // 0→あいこ
-    // 1→勝ち
-    // 2→負け
-
-    function startGame(){
-        const randomNumber = Math.floor(Math.random() * 3); //PCの手
-        const randomNumber2 = Math.floor(Math.random() * 3); //お題
-
-        console.log("PCの手：" + randomNumber);
-        console.log("お題：" + randomNumber2);
-
-        pcHands = randomNumber;
-        instruction = randomNumber2;
-
-        //ランダムに出たPCの手と指示に応じて画像を変更し表示
-        $(".pc_result").html(`<img src="${pcHandImages[pcHands]}" alt="PCの手の画像" width="100px">`);
-        $(".result_comment").text(instructionComments[instruction]);
-        $(".result_img").html(`<img src="${instructionImages[instruction]}" alt="指示の画像" width="100px">`);
+    // 文字数カウント関数 (日本語の文字数カウントは複雑なため、単純にlengthプロパティを使用)
+    function countCharacters(str) {
+        return str.length;
     }
 
-    $("#start").on("click", function() {
-        if (gameActive) return; //すでにゲーム中なら何もしない（ボタン連打を防ぐ）
-        gameActive = true;
-        answerCount = 0; //リセット
-        correctCount = 0; //リセット
-        $("#answer").text(answerCount);
-        $("#correct").text(correctCount);
-        $("#rate").text("0.00");
-
-        // ゲーム開始時は結果エリアを非表示にする
-        $("#scoreResultArea").hide();
-
-        startGame(); //pcの手とお題を表示
-        countDownTimer(); //タイマーを開始
-        startMusic.currentTime = 0; //効果音の再生位置を0秒からスタートする
-        startMusic.play(); //効果音再生
-    });
-
-    // ボタンを押したら正解か違うかもを表示
-    // グーボタン・チョキボタン・パーボタン３種類で作る
-    function judge(input_button) {
-        if(!gameActive) return;//ゲーム中じゃなかったら何もしない
-
-        answerCount++; // 回答数を増やす
-        $("#answer").text(answerCount); // 回答数を更新
-
-        //プレイヤーの正しい手の組み合わせ
-        const correctHand = play[pcHands][instruction];
-
-        if (input_button === correctHand) { //プレイヤーの手が正しく入力された場合
-            OKMusic.currentTime = 0;
-            OKMusic.play();
-            correctCount++;
-            $("#correct").text(correctCount);
-        } else {
-            NGMusic.currentTime = 0;
-            NGMusic.play();
-        }
-
-        setTimeout(function() {
-            startGame();
-        }, 100); //0.1秒後に次のpcの手とお題を表示
-    }
-
-    function countDownTimer(){
-        const countDown = document.getElementById('timer');
-        const targetTime = new Date().getTime() + 15000; //現在の日付時刻＋15秒後を終了時刻とする
-
-        clearInterval(interval); //前のタイマーがあればクリア
-
-        function updateCountDown(){ //タイマーの表示（現在時刻との差）を更新
-            const now = new Date().getTime(); //現在時刻
-            const distance = targetTime - now; //残り時間
-
-            //残り時間を時、分、秒に変換(floorで小数点以下切り捨て)
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / (1000));
-            const miliseconds = distance < 0 ? 0 :Math.floor(distance % 1000);
-
-            //タイマーの残り時間をHTMLに表示
-            //padStartで桁が少ない時は頭に０をつけて表示する
-            countDown.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${ String( miliseconds ).padStart( 3, "0" ) }`;
-
-            if(distance <= 5000 && distance >0){ //残り時間が5秒以下の時
-                countDown.style.color = 'red'; //文字色を赤に
-            } else {
-                countDown.style.color = '#384B70';
-            }
-
-            if(distance < 0){ //残り時間がマイナスの時
-                clearInterval(interval); //タイマーをクリア
-                countDown.textContent = '終了しました'; //表示を終了しましたに変更
-                countDown.style.color = '#384B70';
-                gameActive = false; //ゲームを無効化（ボタン無反応になる）
-
-                // 正答率の計算と、グローバル変数に最終スコアを保存
-                finalCorrectCount = correctCount;
-                finalAnswerCount = answerCount;
-                finalCorrectAnswerRate =answerCount > 0 ? (correctCount / answerCount) * 100 : 0;
-                $("#rate").text(finalCorrectAnswerRate.toFixed(2));
-
-                showScoreModal(finalCorrectCount, finalAnswerCount, finalCorrectAnswerRate);
-            }
-        }
-
-        interval = setInterval(updateCountDown, 1); 
-        updateCountDown();
-    }
-        
-    $(document).ready(function() {
-        $('#reloadPage').on('click', function() {
-            location.reload();  // ページを再読み込み
-        });
-
-        $("#saveScoreBtn").on("click", function() {
-            const playerName = $("#finalResultPlayerName").val().trim();
-            const playerNameRegex = /^[a-zA-Z0-9]{1,8}$/; 
-            
-            if (!playerNameRegex.test(playerName)) { 
-                alert("プレイヤー名は半角英数8文字以内で入力してください。");
-                return; // 保存しない
-            }
-
-            // 保存処理
-            saveScoreToFirebase(playerName, finalCorrectCount, finalAnswerCount, finalCorrectAnswerRate);
-            $("#scoreResultArea").hide(); // ポップアップを非表示にする
-            location.reload(); // 保存後にリロード
-        });
-        // ページロード時に結果表示エリアを非表示にする
-        $("#scoreResultArea").hide();
-    })
-
-    function showScoreModal(correct, answer, rate) {
-        $("#finalResultCorrect").text(correct);
-        $("#finalResultAnswer").text(answer);
-        $("#finalResultRate").text(rate.toFixed(2));
-        $("#finalResultPlayerName").val(""); // プレイヤー名入力欄をクリア
-        $("#scoreResultArea").show(); // ポップアップを表示
-    }
-
-    function saveScoreToFirebase(playerName, correctAnswers, totalAnswers, winRate) {
-        addDoc(collection(db, "scores"), { // "scores" はFirestoreのコレクション名
-            playerName: playerName,
-            correctAnswers: correctAnswers,
-            totalAnswers: totalAnswers,
-            winRate: parseFloat(winRate.toFixed(2)),
-            timestamp: serverTimestamp(),
-        })
-        .then(() => {
-            console.log("スコアが正常に保存されました！"); // 成功時のログ
-        })
-        .catch((error) => {
-            console.error("Firebaseへの書き込みエラー:", error); // エラー発生時のログ
-            alert("スコアの保存中にエラーが発生しました。コンソールを確認してください。");
-        });
-    }
-
-    // 「Firestore 形式のデータ」を入力して「配列形式のデータ」を出力する関数を追加する
-    // FirestoreのTimestampオブジェクトをDateオブジェクトに変換する処理を追加
-    function convertFirestoreDocsToArray(fireStoreDocs) {
-        const documents = []; 
-        fireStoreDocs.forEach(function (doc) {
-            const data = doc.data();
-            documents.push({
-                id: doc.id,
-                // Firebaseに保存したフィールド名と一致させる
-                playerName: data.playerName,
-                correctAnswers: data.correctAnswers, 
-                totalAnswers: data.totalAnswers,     
-                winRate: data.winRate,
-                // FirestoreのTimestampオブジェクトをtoDate()でJSのDateオブジェクトに変換
-                timestamp: data.timestamp.toDate()
-            });
-        });
-        return documents;
+ // 「Firestore 形式のデータ」を入力して「配列形式のデータ」を出力する関数を追加する
+    function chatDocuments(fireStoreDocs) {
+      const documents = [];
+      fireStoreDocs.forEach(function (doc) {
+        const document = {
+          id: doc.id,
+          data: doc.data(),
+        };
+        documents.push(document);
+      });
+      return documents;
     }
 
     // 「配列形式にしたチャットのデータ」を入力して「表示用のタグにいれて」出力する関数を追加する
-    // 関数名を createRankingElements に戻し、HTML構造をコレクション表示に修正
-    function createRankingElements(scoreDocuments) {
-        let elements = ''; // 初期値を空文字列に変更
-
-        // 各スコアデータを個別のカード（div）として生成
-        scoreDocuments.forEach(function (document, index) {
-            // convertTimestampToDatetime 関数は Date オブジェクトを受け取るように修正済み
-            const formattedTime = convertTimestampToDatetime(document.timestamp)
-
-            elements += `
-                <div class="ranking-item">
-                    <div class="ranking-rank">#${index + 1}</div>
-                    <div class="ranking-details">
-                        <div class="ranking-player"><strong>${document.playerName}</strong></div>
-                        <div class="ranking-stats">
-                            <span>正答率: ${document.winRate.toFixed(2)}%</span>
-                            <span>正答数: ${document.correctAnswers}</span>
-                            <span>回答数: ${document.totalAnswers}</span>
-                        </div>
-                        <div class="ranking-time">記録日時: ${formattedTime}</div>
-                    </div>
-                </div>
-            `;
-        });
-
-        // データがない場合の表示
-        if (scoreDocuments.length === 0) {
-            elements = '<p>まだランキングデータがありません。</p>';
-        }
-
-        return elements;
+    function chatElements(chatDocuments) {
+      const elements = [];
+      chatDocuments.forEach(function (document) {
+        elements.push(`
+          <li id="${document.id}">
+            <p class="chat-text">${document.data.text}</p>
+            <p class="chat-nameTime">${
+              document.data.name
+            } 吐 ${convertTimestampToDatetime(document.data.time.seconds)}</p>
+          </li>
+        `);
+      });
+      return elements;
     }
 
-    // データ取得条件の指定
-        // "scores" コレクションから、winRateの降順、次にtimestampの降順で取得
-        const q = query(
-            collection(db, "scores"), // コレクション名を "scores" に修正
-            orderBy("winRate", "desc"),
-            orderBy("timestamp", "desc"), // 新しい順にするため降順に
-            limit(10) // 上位10件のみ表示
-        );
 
-    // データ取得処理（リアルタイムリスナー）
+    //送信ボタンクリック時にデータを送信
+    $("#send").on("click", function () {
+        const userName = $("#name").val();
+        const text575 = $("#text").val();
+
+        // --- バリデーションの開始 ---
+        // 1. 名前が空欄の場合のチェック
+        if (userName === "") { // ここを修正
+            alert("お名前を入力してください。");
+            return; // 以降の処理を中断
+        }
+
+        // 2. 名前の全角チェック (空欄ではない場合のみ)
+        if (!isZenkaku(userName)) {
+            alert("お名前は全角で入力してください。");
+            return; // 以降の処理を中断
+        }
+
+        // 3. 名前の文字数チェック
+        const nameLength = countCharacters(userName);
+        if (nameLength > 8) { // 8文字以内
+            alert(`８文字以内で入力してください。(現在: ${textLength}文字)`);
+            return; // 以降の処理を中断
+        }
+        
+        // 4. 575メッセージが空欄の場合のチェック
+        if (text575 === "") {
+            alert("575を入力してください。");
+            return; // 以降の処理を中断
+        }
+
+        // 5. 575メッセージの全角チェック
+        if (!isZenkaku(text575)) {
+            alert("575は全角で入力してください。");
+            return; // 以降の処理を中断
+        }
+
+        // 6. 575メッセージの文字数チェック
+        const textLength = countCharacters(text575);
+        if (textLength > 20) { // 20文字以内
+            alert(`５７５になるように入力してください。(現在: ${textLength}文字)`);
+            return; // 以降の処理を中断
+        }
+        // --- バリデーションの終了 ---
+
+        const postData = {
+            name: userName,
+            text: text575,
+            time: serverTimestamp(),
+        };
+
+        addDoc(collection(db, "chat-575"),postData);
+            $("#text").val("");
+        });
+
+    //データ取得条件の指定（今回は時間の新しい順に並び替えて取得）
+    const q = query(
+        collection(db, "chat-575"),
+        orderBy("time", "desc")
+    );
+
+    // データ取得処理
     onSnapshot(q, (querySnapshot) => {
+        console.log(querySnapshot.docs);
         // firestore 形式のデータである querySnapshot.docs を入力する
-        const documents = convertFirestoreDocsToArray(querySnapshot.docs);
-        console.log("ランキングデータ:", documents);
-
+        const documents = chatDocuments(querySnapshot.docs);
+        console.log(documents);
         // 配列形式のデータを入力して表示用のタグにいれて出力する
-        const rankingElementsHtml = createRankingElements(documents); // 変数名を明確化
-        $("#rankingOutput").html(rankingElementsHtml); // ランキング表示用のHTML要素のIDは"rankingOutput"
+        const elements = chatElements(documents);
+        $("#output").html(elements);
     });
 
-
-
-
-    
-    </script>
+  </script>
 
 </body>
 
