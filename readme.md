@@ -6,7 +6,7 @@
 - ぼやきは長いと敬遠されるので５７５に収めて消化させる
 
 ## ③アプリのデプロイURL
-https://matsuri-tanii.github.io/kadai03_memo/
+https://matsuri-tanii.github.io/kadai04_chat/
 
 ## ④アプリのログイン用IDまたはPassword（ある場合）
 - ID: 今回はなし
